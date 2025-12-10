@@ -15,6 +15,8 @@ npx cap sync
 
 * [`open(...)`](#open)
 * [`close()`](#close)
+* [`getStatus()`](#getstatus)
+* [Interfaces](#interfaces)
 
 </docgen-index>
 
@@ -41,5 +43,32 @@ close() => Promise<void>
 ```
 
 --------------------
+
+
+### getStatus()
+
+```typescript
+getStatus() => Promise<PDFViewerStatus>
+```
+
+Returns the current viewer status. `isAtEnd` becomes true once the user
+reaches the last page.
+
+**Returns:** <code>Promise&lt;<a href="#pdfviewerstatus">PDFViewerStatus</a>&gt;</code>
+
+--------------------
+
+
+### Interfaces
+
+
+#### PDFViewerStatus
+
+| Prop            | Type                 |
+| --------------- | -------------------- |
+| **`isOpen`**    | <code>boolean</code> |
+| **`isAtEnd`**   | <code>boolean</code> |
+| **`page`**      | <code>number</code>  |
+| **`pageCount`** | <code>number</code>  |
 
 </docgen-api>

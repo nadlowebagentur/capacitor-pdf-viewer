@@ -26,4 +26,9 @@ public class PDFViewerPlugin: CAPPlugin {
         
         call.resolve()
     }
+    
+    @objc func getStatus(_ call: CAPPluginCall) {
+        let status = implementation.getStatus()
+        call.resolve(status)
+    }
 }
