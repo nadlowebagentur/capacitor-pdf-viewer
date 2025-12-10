@@ -26,4 +26,9 @@ public class PDFViewerPlugin extends Plugin {
     public void close(PluginCall call) {
         implementation.closeViewer(call);
     }
+
+    @PluginMethod
+    public void getStatus(PluginCall call) {
+        implementation.getViewerStatus(call);
+    }
 }

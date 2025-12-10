@@ -7,6 +7,7 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 
 import com.getcapacitor.Bridge;
+import com.getcapacitor.JSObject;
 import com.getcapacitor.PluginCall;
 
 public class PDFViewer {
@@ -15,6 +16,7 @@ public class PDFViewer {
     private static final String LOG_TAG = "PdfViewer.PDFViewer";
 
     private Bridge bridge;
+    private PdfViewerFragment activeFragment;
 
     public void setBridge(Bridge bridge) {
         this.bridge = bridge;
@@ -58,6 +60,8 @@ public class PDFViewer {
 
             Log.i(LOG_TAG, "openViewer: attaching PdfViewerFragment with marginTopPx=" + marginTopPx);
             PdfViewerFragment fragment = PdfViewerFragment.newInstance(url, marginTopPx);
+            activeFragment = fragment;
+
             fm.beginTransaction()
               .add(android.R.id.content, fragment, FRAGMENT_TAG)
               .commitAllowingStateLoss();
@@ -87,10 +91,46 @@ public class PDFViewer {
                 Log.i(LOG_TAG, "closeViewer: removing fragment");
                 fm.beginTransaction().remove(fragment).commitAllowingStateLoss();
                 fm.executePendingTransactions();
+                activeFragment = null;
             } else {
                 Log.i(LOG_TAG, "closeViewer: no fragment to remove");
             }
             call.resolve();
+        });
+    }
+
+    public void getViewerStatus(PluginCall call) {
+        if (bridge == null) {
+            Log.e(LOG_TAG, "getViewerStatus: bridge is null");
+            call.reject("Bridge not set");
+            return;
+        }
+
+        final Activity activity = bridge.getActivity();
+        if (activity == null) {
+            Log.e(LOG_TAG, "getViewerStatus: activity is null");
+            call.reject("No active activity");
+            return;
+        }
+
+        activity.runOnUiThread(() -> {
+            FragmentManager fm = ((androidx.fragment.app.FragmentActivity) activity).getSupportFragmentManager();
+            Fragment fragment = fm.findFragmentByTag(FRAGMENT_TAG);
+
+            PdfViewerFragment viewer = fragment instanceof PdfViewerFragment
+                    ? (PdfViewerFragment) fragment
+                    : activeFragment;
+
+            PdfViewerFragment.ViewerStatus status = viewer != null
+                    ? viewer.snapshotStatus()
+                    : PdfViewerFragment.ViewerStatus.closed();
+
+            JSObject result = new JSObject();
+            result.put("isOpen", status.isOpen);
+            result.put("isAtEnd", status.isAtEnd);
+            result.put("page", status.currentPage);
+            result.put("pageCount", status.pageCount);
+            call.resolve(result);
         });
     }
 }

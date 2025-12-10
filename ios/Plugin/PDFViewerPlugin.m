@@ -6,4 +6,5 @@
 CAP_PLUGIN(PDFViewerPlugin, "PDFViewer",
            CAP_PLUGIN_METHOD(open, CAPPluginReturnPromise);
            CAP_PLUGIN_METHOD(close, CAPPluginReturnPromise);
+           CAP_PLUGIN_METHOD(getStatus, CAPPluginReturnPromise);
 )

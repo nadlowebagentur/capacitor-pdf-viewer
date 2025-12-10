@@ -58,6 +58,27 @@ public class PdfViewerFragment extends Fragment {
     private Guideline guidelineTop;
     private PDFView pdfView;
     private ProgressBar progress;
+    private volatile int currentPage = 0;
+    private volatile int pageCount = -1;
+    private volatile boolean isAtEnd = false;
+
+    public static final class ViewerStatus {
+        public final boolean isOpen;
+        public final boolean isAtEnd;
+        public final int currentPage;
+        public final int pageCount;
+
+        public ViewerStatus(boolean isOpen, boolean isAtEnd, int currentPage, int pageCount) {
+            this.isOpen = isOpen;
+            this.isAtEnd = isAtEnd;
+            this.currentPage = currentPage;
+            this.pageCount = pageCount;
+        }
+
+        public static ViewerStatus closed() {
+            return new ViewerStatus(false, false, 0, 0);
+        }
+    }
 
     public static PdfViewerFragment newInstance(String url, int marginTopPx) {
         PdfViewerFragment fragment = new PdfViewerFragment();
@@ -261,10 +282,12 @@ public class PdfViewerFragment extends Fragment {
          .pageSnap(true)
          .spacing(10)                 // dp between pages
          .pageFitPolicy(FitPolicy.WIDTH)
+         .onPageChange((page, count) -> updateStatus(page, count))
          .enableAntialiasing(true)
          .onLoad(nbPages -> {
              Log.i(LOG_TAG, "PDF onLoad: pages=" + nbPages);
              progress.setVisibility(View.GONE);
+             updateStatus(0, nbPages);
          })
          .onError(t -> {
              Log.e(LOG_TAG, "PDF onError", t);
@@ -308,5 +331,17 @@ public class PdfViewerFragment extends Fragment {
     public void onDestroy() {
         io.shutdownNow();
         super.onDestroy();
+    }
+
+    private void updateStatus(int page, int count) {
+        this.currentPage = Math.max(0, page);
+        this.pageCount = Math.max(0, count);
+        this.isAtEnd = this.pageCount > 0 && this.currentPage >= this.pageCount - 1;
+        Log.i(LOG_TAG, "status: page=" + this.currentPage + "/" + this.pageCount + ", atEnd=" + this.isAtEnd);
+    }
+
+    public ViewerStatus snapshotStatus() {
+        boolean open = isAdded() && pageCount > 0;
+        return open ? new ViewerStatus(true, isAtEnd, currentPage, pageCount) : ViewerStatus.closed();
     }
 }
