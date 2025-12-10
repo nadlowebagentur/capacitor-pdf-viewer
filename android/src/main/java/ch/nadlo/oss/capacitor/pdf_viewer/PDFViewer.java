@@ -1,108 +1,96 @@
 package ch.nadlo.oss.capacitor.pdf_viewer;
 
 import android.app.Activity;
-import android.app.Application;
-import android.content.Intent;
-import android.os.Bundle;
-import android.view.Window;
-import android.view.WindowManager;
-import android.view.View;
+import android.util.Log;
 
-import androidx.annotation.NonNull;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
 
 import com.getcapacitor.Bridge;
-import com.rajat.pdfviewer.PdfViewerActivity;
-import com.rajat.pdfviewer.util.saveTo;
-import com.rajat.pdfviewer.util.CacheStrategy;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.HashMap;
-import java.util.Map;
+import com.getcapacitor.PluginCall;
 
 public class PDFViewer {
-    private Bridge bridge = null;
 
-    private static final List<Activity> activeActivities = new ArrayList<>();
+    private static final String FRAGMENT_TAG = "PdfViewerFragmentTag";
+    private static final String LOG_TAG = "PdfViewer.PDFViewer";
+
+    private Bridge bridge;
 
     public void setBridge(Bridge bridge) {
         this.bridge = bridge;
-
-        // Register global activity lifecycle callbacks if not already registered
-        if (activeActivities.isEmpty()) {
-            Application app = (Application) bridge.getContext().getApplicationContext();
-            app.registerActivityLifecycleCallbacks(new Application.ActivityLifecycleCallbacks() {
-                @Override
-                public void onActivityCreated(@NonNull Activity activity, Bundle savedInstanceState) {
-                    if (activity.getClass().getName().equals(PdfViewerActivity.class.getName())) {
-                        activeActivities.add(activity);
-                        // Add FLAG_KEEP_SCREEN_ON when PdfViewerActivity is created
-                        activity.getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-
-                        View decorView = activity.getWindow().getDecorView();
-                        decorView.setSystemUiVisibility(
-                            View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                            | View.SYSTEM_UI_FLAG_FULLSCREEN
-                            | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                            | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                        );
-                    }
-                }
-
-                @Override
-                public void onActivityDestroyed(@NonNull Activity activity) {
-                    if (activity.getClass().getName().equals(PdfViewerActivity.class.getName())) {
-                        activeActivities.remove(activity);
-                        // Clear FLAG_KEEP_SCREEN_ON when PdfViewerActivity is destroyed
-                        activity.getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-                    }
-                }
-
-                // Other lifecycle methods can remain empty
-                public void onActivityStarted(@NonNull Activity activity) {
-                }
-
-                public void onActivityStopped(@NonNull Activity activity) {
-                }
-
-                public void onActivityResumed(@NonNull Activity activity) {
-                }
-
-                public void onActivityPaused(@NonNull Activity activity) {
-                }
-
-                public void onActivitySaveInstanceState(@NonNull Activity activity, @NonNull Bundle outState) {
-                }
-            });
-        }
     }
 
-    public void openViewer(String url, String title) {
-        this.close();
+    public void openViewer(PluginCall call) {
+        if (bridge == null) {
+            Log.e(LOG_TAG, "openViewer: bridge is null");
+            call.reject("Bridge not set");
+            return;
+        }
 
-        Map<String, String> headers = new HashMap<>();
+        final String url = call.getString("url", null);
+        // Accept your existing JS API key "top"; fallback to "marginTop" if present.
+        final int marginTopPx = call.getInt("top", call.getInt("marginTop", 0));
 
-        // Create an intent with unique extras or identifiers
-        Intent activeIntent = PdfViewerActivity.Companion.launchPdfFromUrl(
-                this.bridge.getContext(),
-                url,
-                title,
-                saveTo.DOWNLOADS,
-                false,
-                true,
-                headers,
-                null,
-                CacheStrategy.MAXIMIZE_PERFORMANCE
-        );
+        Log.i(LOG_TAG, "openViewer: url=" + url + ", marginTopPx=" + marginTopPx);
 
-        this.bridge.getActivity().startActivity(activeIntent);
+        if (url == null || url.trim().isEmpty()) {
+            Log.e(LOG_TAG, "openViewer: URL missing");
+            call.reject("URL is required");
+            return;
+        }
+
+        final Activity activity = bridge.getActivity();
+        if (activity == null) {
+            Log.e(LOG_TAG, "openViewer: activity is null");
+            call.reject("No active activity");
+            return;
+        }
+
+        activity.runOnUiThread(() -> {
+            FragmentManager fm = ((androidx.fragment.app.FragmentActivity) activity).getSupportFragmentManager();
+
+            // Remove any previous instance
+            Fragment existing = fm.findFragmentByTag(FRAGMENT_TAG);
+            if (existing != null) {
+                Log.i(LOG_TAG, "openViewer: removing existing fragment");
+                fm.beginTransaction().remove(existing).commitNowAllowingStateLoss();
+            }
+
+            Log.i(LOG_TAG, "openViewer: attaching PdfViewerFragment with marginTopPx=" + marginTopPx);
+            PdfViewerFragment fragment = PdfViewerFragment.newInstance(url, marginTopPx);
+            fm.beginTransaction()
+              .add(android.R.id.content, fragment, FRAGMENT_TAG)
+              .commitAllowingStateLoss();
+
+            call.resolve();
+        });
     }
 
-    public void close() {
-        for (Activity activity : activeActivities) {
-            activity.finish();
+    public void closeViewer(PluginCall call) {
+        if (bridge == null) {
+            Log.e(LOG_TAG, "closeViewer: bridge is null");
+            call.reject("Bridge not set");
+            return;
         }
+
+        final Activity activity = bridge.getActivity();
+        if (activity == null) {
+            Log.e(LOG_TAG, "closeViewer: activity is null");
+            call.reject("No active activity");
+            return;
+        }
+
+        activity.runOnUiThread(() -> {
+            FragmentManager fm = ((androidx.fragment.app.FragmentActivity) activity).getSupportFragmentManager();
+            Fragment fragment = fm.findFragmentByTag(FRAGMENT_TAG);
+            if (fragment != null) {
+                Log.i(LOG_TAG, "closeViewer: removing fragment");
+                fm.beginTransaction().remove(fragment).commitAllowingStateLoss();
+                fm.executePendingTransactions();
+            } else {
+                Log.i(LOG_TAG, "closeViewer: no fragment to remove");
+            }
+            call.resolve();
+        });
     }
 }

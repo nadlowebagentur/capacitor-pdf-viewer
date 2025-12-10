@@ -1,6 +1,10 @@
 {
   "name": "@nadlowebagentur/capacitor-pdf-viewer",
+<<<<<<< HEAD
   "version": "0.1.6",
+=======
+  "version": "0.1.10",
+>>>>>>> 00a597e369fb8a91e5d4a04f556e6dc917bfe48b
   "description": "Native PDF viewer",
   "main": "dist/plugin.cjs.js",
   "module": "dist/esm/index.js",
