@@ -51,9 +51,6 @@ close() => Promise<void>
 getStatus() => Promise<PDFViewerStatus>
 ```
 
-Returns the current viewer status. `isAtEnd` becomes true once the user
-reaches the last page.
-
 **Returns:** <code>Promise&lt;<a href="#pdfviewerstatus">PDFViewerStatus</a>&gt;</code>
 
 --------------------
