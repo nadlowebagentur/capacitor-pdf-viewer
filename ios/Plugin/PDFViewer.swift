@@ -45,6 +45,17 @@ import PDFKit
         }
     }
     
+    @objc public func setMode(_ mode: String) {
+        DispatchQueue.main.async {
+            guard let rootViewController = UIApplication.shared.keyWindow?.rootViewController else { return }
+            if mode == "back" {
+                rootViewController.view.sendSubviewToBack(self.pdfView)
+            } else {
+                rootViewController.view.bringSubviewToFront(self.pdfView)
+            }
+        }
+    }
+
     @objc public func closeViewer() {
         DispatchQueue.main.async {
             if let rootViewController = UIApplication.shared.keyWindow?.rootViewController {

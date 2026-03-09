@@ -31,4 +31,10 @@ public class PDFViewerPlugin: CAPPlugin {
         let status = implementation.getStatus()
         call.resolve(status)
     }
+
+    @objc func setMode(_ call: CAPPluginCall) {
+        let mode = call.getString("mode") ?? "front"
+        implementation.setMode(mode)
+        call.resolve()
+    }
 }
