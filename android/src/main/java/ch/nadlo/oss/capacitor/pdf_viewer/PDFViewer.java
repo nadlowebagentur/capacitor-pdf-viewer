@@ -5,6 +5,7 @@ import android.graphics.Color;
 import android.util.Log;
 import android.webkit.WebView;
 
+import androidx.coordinatorlayout.widget.CoordinatorLayout;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 
@@ -85,11 +86,12 @@ public class PDFViewer {
             // before any subsequent setMode() call arrives on the main thread.
             fm.executePendingTransactions();
 
-            // Force MATCH_PARENT so CoordinatorLayout doesn't collapse it to WRAP_CONTENT
+            // Force CoordinatorLayout.LayoutParams (MATCH_PARENT) — plain ViewGroup.LayoutParams
+            // causes a ClassCastException when CoordinatorLayout measures its children.
             if (activeFragment.getView() != null) {
-                activeFragment.getView().setLayoutParams(new android.view.ViewGroup.LayoutParams(
-                        android.view.ViewGroup.LayoutParams.MATCH_PARENT,
-                        android.view.ViewGroup.LayoutParams.MATCH_PARENT));
+                activeFragment.getView().setLayoutParams(new CoordinatorLayout.LayoutParams(
+                        CoordinatorLayout.LayoutParams.MATCH_PARENT,
+                        CoordinatorLayout.LayoutParams.MATCH_PARENT));
             }
 
             // Make WebView transparent so PDF at index 0 shows through (same as VSPlayer)
