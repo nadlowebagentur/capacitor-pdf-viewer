@@ -155,7 +155,8 @@ public class PDFViewer {
         }
 
         activity.runOnUiThread(() -> {
-            Log.i(MODE_TAG, "setMode(" + mode + "): activeFragment=" + activeFragment);
+            String url = activeFragment != null ? activeFragment.getUrl() : "null";
+            Log.i(MODE_TAG, "setMode(" + mode + "): activeFragment=" + activeFragment + " url=" + url);
 
             android.view.View fragmentView = activeFragment != null ? activeFragment.getView() : null;
             if (fragmentView == null) {
@@ -186,13 +187,17 @@ public class PDFViewer {
                         + " id=" + child.getId() + " z=" + child.getZ());
             }
 
-            parent.removeView(fragmentView);
+            // Use bringToFront() instead of removeView/addView — bringToFront uses internal
+            // array manipulation (no onDetachedFromWindow / onAttachedToWindow callbacks),
+            // which prevents the PDF view from losing its rendered content.
             if ("back".equals(mode)) {
-                parent.addView(fragmentView, 0); // index 0 = behind WebView (transparent)
-                Log.i(MODE_TAG, "setMode(back): moved fragment to index 0 (behind webview)");
+                // Bring WebView to front → PDF fragment implicitly moves behind it
+                bridge.getWebView().bringToFront();
+                Log.i(MODE_TAG, "setMode(back): webView brought to front (pdf behind)");
             } else {
-                parent.addView(fragmentView);    // last index = in front of WebView
-                Log.i(MODE_TAG, "setMode(front): moved fragment to index " + (parent.getChildCount() - 1));
+                // Bring PDF fragment to front → in front of WebView
+                fragmentView.bringToFront();
+                Log.i(MODE_TAG, "setMode(front): fragmentView brought to front");
             }
 
             call.resolve();

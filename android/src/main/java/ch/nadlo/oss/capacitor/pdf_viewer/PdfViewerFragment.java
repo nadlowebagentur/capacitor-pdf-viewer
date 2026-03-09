@@ -344,4 +344,8 @@ public class PdfViewerFragment extends Fragment {
         boolean open = isAdded() && pageCount > 0;
         return open ? new ViewerStatus(true, isAtEnd, currentPage, pageCount) : ViewerStatus.closed();
     }
+
+    public String getUrl() {
+        return pdfUrl;
+    }
 }
