@@ -2,7 +2,6 @@ package ch.nadlo.oss.capacitor.pdf_viewer;
 
 import android.app.Activity;
 import android.graphics.Color;
-import android.graphics.drawable.Drawable;
 import android.util.Log;
 import android.webkit.WebView;
 
@@ -21,7 +20,6 @@ public class PDFViewer {
 
     private Bridge bridge;
     private PdfViewerFragment activeFragment;
-    private Drawable savedWebViewContainerBackground = null;
 
     public void setBridge(Bridge bridge) {
         this.bridge = bridge;
@@ -63,20 +61,41 @@ public class PDFViewer {
                 fm.beginTransaction().remove(existing).commitNowAllowingStateLoss();
             }
 
-            Log.i(LOG_TAG, "openViewer: attaching PdfViewerFragment with marginTopPx=" + marginTopPx);
+            // Add the fragment inside WebView's parent (same container as WebView),
+            // mirroring VSPlayer: PDF at index 0 (bottom), WebView at index 1 (transparent on top).
+            WebView webView = bridge.getWebView();
+            android.view.ViewGroup webViewParent = (android.view.ViewGroup) webView.getParent();
+            if (webViewParent.getId() == android.view.View.NO_ID) {
+                webViewParent.setId(android.view.View.generateViewId());
+            }
+            int pdfContainerId = webViewParent.getId();
+
+            Log.i(LOG_TAG, "openViewer: attaching PdfViewerFragment with marginTopPx=" + marginTopPx
+                    + " into container id=" + pdfContainerId
+                    + " (" + webViewParent.getClass().getSimpleName() + ")");
+
             PdfViewerFragment fragment = PdfViewerFragment.newInstance(url, marginTopPx);
             activeFragment = fragment;
 
             fm.beginTransaction()
-              .add(android.R.id.content, fragment, FRAGMENT_TAG)
+              .add(pdfContainerId, fragment, FRAGMENT_TAG)
               .commitAllowingStateLoss();
 
             // Flush synchronously so activeFragment.getView() is non-null
             // before any subsequent setMode() call arrives on the main thread.
             fm.executePendingTransactions();
 
-            android.view.ViewGroup content = activity.findViewById(android.R.id.content);
-            Log.i(MODE_TAG, "openViewer: committed, content child count=" + content.getChildCount()
+            // Force MATCH_PARENT so CoordinatorLayout doesn't collapse it to WRAP_CONTENT
+            if (activeFragment.getView() != null) {
+                activeFragment.getView().setLayoutParams(new android.view.ViewGroup.LayoutParams(
+                        android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                        android.view.ViewGroup.LayoutParams.MATCH_PARENT));
+            }
+
+            // Make WebView transparent so PDF at index 0 shows through (same as VSPlayer)
+            webView.setBackgroundColor(Color.TRANSPARENT);
+
+            Log.i(MODE_TAG, "openViewer: committed, webViewParent child count=" + webViewParent.getChildCount()
                     + ", fragment view=" + (activeFragment.getView() != null ? "ready" : "null"));
 
             call.resolve();
@@ -109,6 +128,12 @@ public class PDFViewer {
             } else {
                 Log.i(LOG_TAG, "closeViewer: no fragment to remove");
                 Log.i(MODE_TAG, "closeViewer: fragment not found by tag (activeFragment=" + activeFragment + ")");
+            }
+            // Restore WebView opaque background
+            WebView webView = bridge.getWebView();
+            if (webView != null) {
+                webView.setBackgroundColor(Color.WHITE);
+                Log.i(LOG_TAG, "closeViewer: webView background restored to white");
             }
             call.resolve();
         });
@@ -161,45 +186,11 @@ public class PDFViewer {
 
             parent.removeView(fragmentView);
             if ("back".equals(mode)) {
-                parent.addView(fragmentView, 0); // index 0 = behind WebView container
+                parent.addView(fragmentView, 0); // index 0 = behind WebView (transparent)
                 Log.i(MODE_TAG, "setMode(back): moved fragment to index 0 (behind webview)");
-
-                // Make the WebView container transparent so PDF is visible through it
-                android.view.View webViewContainer = bridge.getWebView() != null
-                        ? (android.view.View) bridge.getWebView().getParent()
-                        : null;
-                if (webViewContainer != null) {
-                    savedWebViewContainerBackground = webViewContainer.getBackground();
-                    webViewContainer.setBackgroundColor(Color.TRANSPARENT);
-                    Log.i(MODE_TAG, "setMode(back): webViewContainer background set to transparent");
-                }
-                WebView wv = bridge.getWebView();
-                if (wv != null) {
-                    wv.setBackgroundColor(Color.TRANSPARENT);
-                    Log.i(MODE_TAG, "setMode(back): webView background set to transparent");
-                }
             } else {
-                parent.addView(fragmentView);    // last index = in front
+                parent.addView(fragmentView);    // last index = in front of WebView
                 Log.i(MODE_TAG, "setMode(front): moved fragment to index " + (parent.getChildCount() - 1));
-
-                // Restore WebView container background
-                android.view.View webViewContainer = bridge.getWebView() != null
-                        ? (android.view.View) bridge.getWebView().getParent()
-                        : null;
-                if (webViewContainer != null) {
-                    if (savedWebViewContainerBackground != null) {
-                        webViewContainer.setBackground(savedWebViewContainerBackground);
-                        savedWebViewContainerBackground = null;
-                    } else {
-                        webViewContainer.setBackgroundColor(Color.WHITE);
-                    }
-                    Log.i(MODE_TAG, "setMode(front): webViewContainer background restored");
-                }
-                WebView wv = bridge.getWebView();
-                if (wv != null) {
-                    wv.setBackgroundColor(Color.WHITE);
-                    Log.i(MODE_TAG, "setMode(front): webView background restored to white");
-                }
             }
 
             call.resolve();
