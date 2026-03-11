@@ -24,43 +24,74 @@ import WebKit
         
         DispatchQueue.main.async {
             if let rootViewController = UIApplication.shared.keyWindow?.rootViewController {
-                self.pdfView.frame = rootViewController.view.bounds;
+                let rootView = rootViewController.view!
+                self.pdfView.frame = rootView.bounds;
                 self.pdfView.frame.origin.y = CGFloat(top);
-                // Adjust the height to account for the top padding
-                self.pdfView.frame.size.height = rootViewController.view.bounds.height - CGFloat(top)
+                self.pdfView.frame.size.height = rootView.bounds.height - CGFloat(top)
 
-                rootViewController.view.bringSubviewToFront(self.pdfView);
-                
+                rootView.bringSubviewToFront(self.pdfView)
+
+                print("[PdfViewer.Mode] open: pdfView added, rootView subviews (\(rootView.subviews.count)):")
+                for (i, sv) in rootView.subviews.enumerated() {
+                    let marker = sv === self.pdfView ? " ← pdfView" : ""
+                    print("[PdfViewer.Mode]   [\(i)] \(type(of: sv)) isOpaque=\(sv.isOpaque)\(marker)")
+                }
+
                 // make PDF fit full width
                 self.pdfView.autoScales = true
                 self.pdfView.displayMode = .singlePageContinuous
                 self.pdfView.displayDirection = .vertical
                 self.pdfView.displaysAsBook = false
-                
+
                 self.pdfView.document = document
                 self.pageCount = document.pageCount
                 self.currentPage = 0
                 self.registerPageChangeObserver()
-
             }
         }
     }
     
     @objc public func setMode(_ mode: String, webView: WKWebView?) {
         DispatchQueue.main.async {
-            guard let rootViewController = UIApplication.shared.keyWindow?.rootViewController else { return }
+            guard let rootViewController = UIApplication.shared.keyWindow?.rootViewController else {
+                print("[PdfViewer.Mode] setMode(\(mode)): rootViewController is nil")
+                return
+            }
+            let rootView = rootViewController.view!
+
+            print("[PdfViewer.Mode] setMode(\(mode)) ─────────────────────────")
+            print("[PdfViewer.Mode]   pdfView.superview: \(self.pdfView.superview.map { "\(type(of: $0))" } ?? "nil")")
+            if let wv = webView {
+                print("[PdfViewer.Mode]   webView.superview: \(wv.superview.map { "\(type(of: $0))" } ?? "nil")")
+                print("[PdfViewer.Mode]   webView === rootView child: \(rootView.subviews.contains(wv))")
+                print("[PdfViewer.Mode]   webView.isOpaque=\(wv.isOpaque) bg=\(String(describing: wv.backgroundColor))")
+            } else {
+                print("[PdfViewer.Mode]   webView: nil (not passed)")
+            }
+            print("[PdfViewer.Mode]   rootView direct subviews (\(rootView.subviews.count)):")
+            for (i, sv) in rootView.subviews.enumerated() {
+                let marker = sv === self.pdfView ? " ← pdfView" : (sv === webView ? " ← webView" : "")
+                print("[PdfViewer.Mode]     [\(i)] \(type(of: sv)) isOpaque=\(sv.isOpaque) bg=\(String(describing: sv.backgroundColor))\(marker)")
+            }
+
             if mode == "back" {
-                rootViewController.view.sendSubviewToBack(self.pdfView)
-                // Make WebView transparent so PDF shows through (same as VSPlayer pattern)
+                rootView.sendSubviewToBack(self.pdfView)
                 webView?.isOpaque = false
                 webView?.backgroundColor = .clear
                 webView?.scrollView.backgroundColor = .clear
+                print("[PdfViewer.Mode]   → sent pdfView to back, webView made transparent")
             } else {
-                rootViewController.view.bringSubviewToFront(self.pdfView)
-                // Restore WebView opacity
+                rootView.bringSubviewToFront(self.pdfView)
                 webView?.isOpaque = true
                 webView?.backgroundColor = .white
                 webView?.scrollView.backgroundColor = .white
+                print("[PdfViewer.Mode]   → brought pdfView to front, webView restored opaque")
+            }
+
+            print("[PdfViewer.Mode]   rootView subviews AFTER (\(rootView.subviews.count)):")
+            for (i, sv) in rootView.subviews.enumerated() {
+                let marker = sv === self.pdfView ? " ← pdfView" : (sv === webView ? " ← webView" : "")
+                print("[PdfViewer.Mode]     [\(i)] \(type(of: sv))\(marker)")
             }
         }
     }
