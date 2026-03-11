@@ -19,4 +19,6 @@ export class PDFViewerWeb extends WebPlugin implements PDFViewerPlugin {
       pageCount: 0,
     };
   }
+
+  async setMode(): Promise<void> {}
 }

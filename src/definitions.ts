@@ -9,4 +9,5 @@ export interface PDFViewerPlugin {
   open(params: { url: string; title?: string; top?: number }): Promise<void>;
   close(): Promise<void>;
   getStatus(): Promise<PDFViewerStatus>;
+  setMode(params: { mode: 'front' | 'back' }): Promise<void>;
 }

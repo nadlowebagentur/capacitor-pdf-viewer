@@ -16,6 +16,7 @@ npx cap sync
 * [`open(...)`](#open)
 * [`close()`](#close)
 * [`getStatus()`](#getstatus)
+* [`setMode(...)`](#setmode)
 * [Interfaces](#interfaces)
 
 </docgen-index>
@@ -52,6 +53,19 @@ getStatus() => Promise<PDFViewerStatus>
 ```
 
 **Returns:** <code>Promise&lt;<a href="#pdfviewerstatus">PDFViewerStatus</a>&gt;</code>
+
+--------------------
+
+
+### setMode(...)
+
+```typescript
+setMode(params: { mode: 'front' | 'back'; }) => Promise<void>
+```
+
+| Param        | Type                                      |
+| ------------ | ----------------------------------------- |
+| **`params`** | <code>{ mode: 'front' \| 'back'; }</code> |
 
 --------------------
 
