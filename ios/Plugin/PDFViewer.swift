@@ -8,6 +8,7 @@ import WebKit
     private var pageCount: Int = 0
     private var currentPage: Int = 0
     private var pageChangeObserver: NSObjectProtocol?
+    private var savedWindowBackground: UIColor?
     
     @objc public func open(_ pdfURL: URL, top: Int = 0) {
         DispatchQueue.main.sync {
@@ -51,14 +52,20 @@ import WebKit
 
             if mode == "back" {
                 rootView.sendSubviewToBack(self.pdfView)
-                // WKWebView's internal WKScrollView is the actual content renderer — make both
-                // transparent so the PDF behind shows through transparent HTML areas
+                // Make WebView fully transparent so PDF shows through.
+                // Set the window background to white so the status bar gap (above PDFView frame)
+                // is white instead of the window's default black.
+                let window = UIApplication.shared.keyWindow
+                self.savedWindowBackground = window?.backgroundColor
+                window?.backgroundColor = .white
                 webView?.isOpaque = false
                 webView?.backgroundColor = .clear
                 webView?.scrollView.isOpaque = false
                 webView?.scrollView.backgroundColor = .clear
             } else {
                 rootView.bringSubviewToFront(self.pdfView)
+                UIApplication.shared.keyWindow?.backgroundColor = self.savedWindowBackground
+                self.savedWindowBackground = nil
                 webView?.isOpaque = true
                 webView?.backgroundColor = .white
                 webView?.scrollView.isOpaque = true
@@ -85,7 +92,9 @@ import WebKit
                 self.pdfView.frame = CGRect();
                 self.pdfView.removeFromSuperview();
 
-                // Restore WebView opacity
+                // Restore WebView opacity and window background
+                UIApplication.shared.keyWindow?.backgroundColor = self.savedWindowBackground
+                self.savedWindowBackground = nil
                 webView?.isOpaque = true
                 webView?.backgroundColor = .white
                 webView?.scrollView.isOpaque = true
