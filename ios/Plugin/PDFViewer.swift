@@ -31,12 +31,6 @@ import WebKit
 
                 rootView.bringSubviewToFront(self.pdfView)
 
-                print("[PdfViewer.Mode] open: pdfView added, rootView subviews (\(rootView.subviews.count)):")
-                for (i, sv) in rootView.subviews.enumerated() {
-                    let marker = sv === self.pdfView ? " ← pdfView" : ""
-                    print("[PdfViewer.Mode]   [\(i)] \(type(of: sv)) isOpaque=\(sv.isOpaque)\(marker)")
-                }
-
                 // make PDF fit full width
                 self.pdfView.autoScales = true
                 self.pdfView.displayMode = .singlePageContinuous
@@ -53,45 +47,22 @@ import WebKit
     
     @objc public func setMode(_ mode: String, webView: WKWebView?) {
         DispatchQueue.main.async {
-            guard let rootViewController = UIApplication.shared.keyWindow?.rootViewController else {
-                print("[PdfViewer.Mode] setMode(\(mode)): rootViewController is nil")
-                return
-            }
-            let rootView = rootViewController.view!
-
-            print("[PdfViewer.Mode] setMode(\(mode)) ─────────────────────────")
-            print("[PdfViewer.Mode]   pdfView.superview: \(self.pdfView.superview.map { "\(type(of: $0))" } ?? "nil")")
-            if let wv = webView {
-                print("[PdfViewer.Mode]   webView.superview: \(wv.superview.map { "\(type(of: $0))" } ?? "nil")")
-                print("[PdfViewer.Mode]   webView === rootView child: \(rootView.subviews.contains(wv))")
-                print("[PdfViewer.Mode]   webView.isOpaque=\(wv.isOpaque) bg=\(String(describing: wv.backgroundColor))")
-            } else {
-                print("[PdfViewer.Mode]   webView: nil (not passed)")
-            }
-            print("[PdfViewer.Mode]   rootView direct subviews (\(rootView.subviews.count)):")
-            for (i, sv) in rootView.subviews.enumerated() {
-                let marker = sv === self.pdfView ? " ← pdfView" : (sv === webView ? " ← webView" : "")
-                print("[PdfViewer.Mode]     [\(i)] \(type(of: sv)) isOpaque=\(sv.isOpaque) bg=\(String(describing: sv.backgroundColor))\(marker)")
-            }
+            guard let rootView = UIApplication.shared.keyWindow?.rootViewController?.view else { return }
 
             if mode == "back" {
                 rootView.sendSubviewToBack(self.pdfView)
+                // WKWebView's internal WKScrollView is the actual content renderer — make both
+                // transparent so the PDF behind shows through transparent HTML areas
                 webView?.isOpaque = false
                 webView?.backgroundColor = .clear
+                webView?.scrollView.isOpaque = false
                 webView?.scrollView.backgroundColor = .clear
-                print("[PdfViewer.Mode]   → sent pdfView to back, webView made transparent")
             } else {
                 rootView.bringSubviewToFront(self.pdfView)
                 webView?.isOpaque = true
                 webView?.backgroundColor = .white
+                webView?.scrollView.isOpaque = true
                 webView?.scrollView.backgroundColor = .white
-                print("[PdfViewer.Mode]   → brought pdfView to front, webView restored opaque")
-            }
-
-            print("[PdfViewer.Mode]   rootView subviews AFTER (\(rootView.subviews.count)):")
-            for (i, sv) in rootView.subviews.enumerated() {
-                let marker = sv === self.pdfView ? " ← pdfView" : (sv === webView ? " ← webView" : "")
-                print("[PdfViewer.Mode]     [\(i)] \(type(of: sv))\(marker)")
             }
         }
     }
@@ -117,6 +88,7 @@ import WebKit
                 // Restore WebView opacity
                 webView?.isOpaque = true
                 webView?.backgroundColor = .white
+                webView?.scrollView.isOpaque = true
                 webView?.scrollView.backgroundColor = .white
             }
         }
