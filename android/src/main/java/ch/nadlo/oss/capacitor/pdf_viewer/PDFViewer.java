@@ -17,7 +17,6 @@ public class PDFViewer {
 
     private static final String FRAGMENT_TAG = "PdfViewerFragmentTag";
     private static final String LOG_TAG = "PdfViewer.PDFViewer";
-    private static final String MODE_TAG  = "PdfViewer.Mode";
 
     private Bridge bridge;
     private PdfViewerFragment activeFragment;
@@ -97,9 +96,6 @@ public class PDFViewer {
             // Make WebView transparent so PDF at index 0 shows through (same as VSPlayer)
             webView.setBackgroundColor(Color.TRANSPARENT);
 
-            Log.i(MODE_TAG, "openViewer: committed, webViewParent child count=" + webViewParent.getChildCount()
-                    + ", fragment view=" + (activeFragment.getView() != null ? "ready" : "null"));
-
             call.resolve();
         });
     }
@@ -126,16 +122,13 @@ public class PDFViewer {
                 fm.beginTransaction().remove(fragment).commitAllowingStateLoss();
                 fm.executePendingTransactions();
                 activeFragment = null;
-                Log.i(MODE_TAG, "closeViewer: done, activeFragment=null");
             } else {
                 Log.i(LOG_TAG, "closeViewer: no fragment to remove");
-                Log.i(MODE_TAG, "closeViewer: fragment not found by tag (activeFragment=" + activeFragment + ")");
             }
             // Restore WebView opaque background
             WebView webView = bridge.getWebView();
             if (webView != null) {
                 webView.setBackgroundColor(Color.WHITE);
-                Log.i(LOG_TAG, "closeViewer: webView background restored to white");
             }
             call.resolve();
         });
@@ -155,36 +148,18 @@ public class PDFViewer {
         }
 
         activity.runOnUiThread(() -> {
-            String url = activeFragment != null ? activeFragment.getUrl() : "null";
-            Log.i(MODE_TAG, "setMode(" + mode + "): activeFragment=" + activeFragment + " url=" + url);
-
             android.view.View fragmentView = activeFragment != null ? activeFragment.getView() : null;
             if (fragmentView == null) {
-                Log.w(MODE_TAG, "setMode(" + mode + "): fragmentView is null – skipping reorder");
+                Log.w(LOG_TAG, "setMode(" + mode + "): fragmentView is null – skipping reorder");
                 call.resolve();
                 return;
             }
 
             android.view.ViewGroup parent = (android.view.ViewGroup) fragmentView.getParent();
             if (parent == null) {
-                Log.w(MODE_TAG, "setMode(" + mode + "): fragmentView has no parent – skipping reorder");
+                Log.w(LOG_TAG, "setMode(" + mode + "): fragmentView has no parent – skipping reorder");
                 call.resolve();
                 return;
-            }
-
-            int childCount = parent.getChildCount();
-            int currentIndex = -1;
-            for (int i = 0; i < childCount; i++) {
-                if (parent.getChildAt(i) == fragmentView) { currentIndex = i; break; }
-            }
-            Log.i(MODE_TAG, "setMode(" + mode + "): parent=" + parent.getClass().getSimpleName()
-                    + " childCount=" + childCount + " fragmentIndex=" + currentIndex);
-
-            // Log all sibling views for hierarchy visibility
-            for (int i = 0; i < childCount; i++) {
-                android.view.View child = parent.getChildAt(i);
-                Log.i(MODE_TAG, "  child[" + i + "] " + child.getClass().getSimpleName()
-                        + " id=" + child.getId() + " z=" + child.getZ());
             }
 
             // Use bringToFront() instead of removeView/addView — bringToFront uses internal
@@ -193,11 +168,9 @@ public class PDFViewer {
             if ("back".equals(mode)) {
                 // Bring WebView to front → PDF fragment implicitly moves behind it
                 bridge.getWebView().bringToFront();
-                Log.i(MODE_TAG, "setMode(back): webView brought to front (pdf behind)");
             } else {
                 // Bring PDF fragment to front → in front of WebView
                 fragmentView.bringToFront();
-                Log.i(MODE_TAG, "setMode(front): fragmentView brought to front");
             }
 
             call.resolve();

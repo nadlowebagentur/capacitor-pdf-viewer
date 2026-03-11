@@ -9,7 +9,6 @@ import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewTreeObserver;
 import android.view.ViewGroup;
 import android.widget.ProgressBar;
 
@@ -182,18 +181,7 @@ public class PdfViewerFragment extends Fragment {
             int navBottom = sysBars.bottom;
             pdfView.setPadding(0, 0, 0, navBottom);
             pdfView.setClipToPadding(false);
-            Log.i(LOG_TAG, "insets: bottom=" + navBottom + " (applied as PDFView padding)");
             return insets;
-        });
-
-        // Layout log
-        root.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
-            @Override public void onGlobalLayout() {
-                root.getViewTreeObserver().removeOnGlobalLayoutListener(this);
-                Log.i(LOG_TAG, "layout: guideBegin=" +
-                        ((ConstraintLayout.LayoutParams) guidelineTop.getLayoutParams()).guideBegin +
-                        ", pdfView.top=" + pdfView.getTop() + ", h=" + pdfView.getHeight());
-            }
         });
 
         progress.setVisibility(View.VISIBLE);
@@ -337,7 +325,6 @@ public class PdfViewerFragment extends Fragment {
         this.currentPage = Math.max(0, page);
         this.pageCount = Math.max(0, count);
         this.isAtEnd = this.pageCount > 0 && this.currentPage >= this.pageCount - 1;
-        Log.i(LOG_TAG, "status: page=" + this.currentPage + "/" + this.pageCount + ", atEnd=" + this.isAtEnd);
     }
 
     public ViewerStatus snapshotStatus() {
@@ -345,7 +332,4 @@ public class PdfViewerFragment extends Fragment {
         return open ? new ViewerStatus(true, isAtEnd, currentPage, pageCount) : ViewerStatus.closed();
     }
 
-    public String getUrl() {
-        return pdfUrl;
-    }
 }
