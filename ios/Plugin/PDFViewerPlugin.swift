@@ -22,8 +22,8 @@ public class PDFViewerPlugin: CAPPlugin {
     }
     
     @objc func close(_ call: CAPPluginCall) {
-        implementation.closeViewer();
-        
+        implementation.closeViewer(webView: self.bridge?.webView)
+
         call.resolve()
     }
     
@@ -34,7 +34,7 @@ public class PDFViewerPlugin: CAPPlugin {
 
     @objc func setMode(_ call: CAPPluginCall) {
         let mode = call.getString("mode") ?? "front"
-        implementation.setMode(mode)
+        implementation.setMode(mode, webView: self.bridge?.webView)
         call.resolve()
     }
 }

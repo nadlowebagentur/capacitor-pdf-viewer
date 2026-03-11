@@ -1,6 +1,7 @@
 import Foundation
 import UIKit
 import PDFKit
+import WebKit
 
 @objc public class PDFViewer: NSObject {
     private let pdfView = PDFView()
@@ -45,23 +46,31 @@ import PDFKit
         }
     }
     
-    @objc public func setMode(_ mode: String) {
+    @objc public func setMode(_ mode: String, webView: WKWebView?) {
         DispatchQueue.main.async {
             guard let rootViewController = UIApplication.shared.keyWindow?.rootViewController else { return }
             if mode == "back" {
                 rootViewController.view.sendSubviewToBack(self.pdfView)
+                // Make WebView transparent so PDF shows through (same as VSPlayer pattern)
+                webView?.isOpaque = false
+                webView?.backgroundColor = .clear
+                webView?.scrollView.backgroundColor = .clear
             } else {
                 rootViewController.view.bringSubviewToFront(self.pdfView)
+                // Restore WebView opacity
+                webView?.isOpaque = true
+                webView?.backgroundColor = .white
+                webView?.scrollView.backgroundColor = .white
             }
         }
     }
 
-    @objc public func closeViewer() {
+    @objc public func closeViewer(webView: WKWebView?) {
         DispatchQueue.main.async {
             if let rootViewController = UIApplication.shared.keyWindow?.rootViewController {
-                // hide pdfView to make hidding effect faster
+                // hide pdfView to make hiding effect faster
                 rootViewController.view.sendSubviewToBack(self.pdfView);
-                
+
                 // clear document
                 self.pdfView.document = nil;
                 if let observer = self.pageChangeObserver {
@@ -70,9 +79,14 @@ import PDFKit
                 }
                 self.pageCount = 0
                 self.currentPage = 0
-                
+
                 self.pdfView.frame = CGRect();
                 self.pdfView.removeFromSuperview();
+
+                // Restore WebView opacity
+                webView?.isOpaque = true
+                webView?.backgroundColor = .white
+                webView?.scrollView.backgroundColor = .white
             }
         }
     }
